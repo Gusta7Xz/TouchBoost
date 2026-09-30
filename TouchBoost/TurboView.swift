@@ -191,7 +191,7 @@ enum TurboHaptics {
 
     static func tap(intensity: Float) {
         generator.prepare()
-        generator.impactOccurred(intensity: max(0.2, min(1.0, intensity)))
+        generator.impactOccurred(intensity: CGFloat(max(0.2, min(1.0, intensity))))
     }
 }
 
