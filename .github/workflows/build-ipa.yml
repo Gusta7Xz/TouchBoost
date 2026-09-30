@@ -1,0 +1,47 @@
+name: Build IPA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build archive (unsigned)
+        run: |
+          xcodebuild archive \
+            -project TouchBoost.xcodeproj \
+            -scheme TouchBoost \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath build/TouchBoost.xcarchive \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
+
+      - name: Create Payload and package IPA
+        run: |
+          mkdir -p Payload
+          cp -r build/TouchBoost.xcarchive/Products/Applications/TouchBoost.app Payload/
+          zip -r TouchBoost-unsigned.ipa Payload
+          rm -rf Payload
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TouchBoost-unsigned-ipa
+          path: TouchBoost-unsigned.ipa

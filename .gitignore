@@ -1,0 +1,7 @@
+build/
+DerivedData/
+*.xcodeproj
+*.xcworkspace
+TouchBoost-unsigned.ipa
+Payload/
+.DS_Store

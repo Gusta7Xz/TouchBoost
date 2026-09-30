@@ -1,0 +1,26 @@
+name: TouchBoost
+options:
+  bundleIdPrefix: com.touchboost
+  deploymentTarget:
+    iOS: "15.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: ""
+    ENABLE_BITCODE: "NO"
+    ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS: "NO"
+
+targets:
+  TouchBoost:
+    type: application
+    platform: iOS
+    sources:
+      - path: TouchBoost
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.touchboost.app
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SUPPORTS_MACCATALYST: "NO"
