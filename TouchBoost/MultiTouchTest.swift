@@ -165,12 +165,12 @@ struct TouchDotView: View {
         Circle()
             .fill(Color.green.opacity(0.55))
             .frame(width: 72, height: 72)
-            .position(dot.x, dot.y)
+            .position(x: dot.x, y: dot.y)
             .overlay(
                 Circle()
                     .stroke(Color.white.opacity(0.8), lineWidth: 2)
                     .frame(width: 72, height: 72)
-                    .position(dot.x, dot.y)
+                    .position(x: dot.x, y: dot.y)
             )
     }
 }
