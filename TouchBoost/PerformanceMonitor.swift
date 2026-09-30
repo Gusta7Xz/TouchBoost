@@ -87,7 +87,7 @@ final class PerformanceModel: ObservableObject {
             fpsHistory.append(currentFPS)
             if fpsHistory.count > 120 { fpsHistory.removeFirst(fpsHistory.count - 120) }
         }
-        memoryFootprintMB = Self.currentMemoryFootprint() / 1_048_576
+        memoryFootprintMB = Double(Self.currentMemoryFootprint()) / 1_048_576
     }
 
     /// Pegada real de memória (phys_footprint), igual ao que o Xcode mostra.

@@ -41,10 +41,7 @@ final class TachometerModel: ObservableObject {
     }
 
     private func prepareHaptics() {
-        guard CHHapticEngine.capabilitiesSupportsHaptics else {
-            engineFailed = true
-            return
-        }
+        // CHHapticEngine() lança erro em dispositivos sem Taptic Engine compatível.
         do {
             engine = try CHHapticEngine()
             try engine?.start()

@@ -90,33 +90,8 @@ struct MultiTouchTestView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                HStack {
-                    counterCard("Ativos", model.activeTouches, color: .green)
-                    counterCard("Máx. simult.", model.maxSimultaneous, color: .blue)
-                    counterCard("Total", model.totalTouches, color: .orange)
-                }
-                .padding()
-
-                ZStack {
-                    MultiTouchCanvas(model: model)
-                    ForEach(model.touches) { dot in
-                        Circle()
-                            .fill(Color.green.opacity(0.55))
-                            .frame(width: 72, height: 72)
-                            .position(dot.x, dot.y)
-                            .overlay(
-                                Circle().stroke(Color.white.opacity(0.8), lineWidth: 2)
-                                    .frame(width: 72, height: 72)
-                                    .position(dot.x, dot.y)
-                            )
-                    }
-                    if model.activeTouches == 0 {
-                        Text("Coloque vários dedos na tela\n(e arraste-os) para testar")
-                            .multilineTextAlignment(.center)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                .ignoresSafeArea(edges: .bottom)
+                countersHeader
+                touchArea
             }
             .navigationTitle("Multi-touch")
             .navigationBarTitleDisplayMode(.inline)
@@ -132,6 +107,40 @@ struct MultiTouchTestView: View {
         .navigationViewStyle(.stack)
     }
 
+    private var countersHeader: some View {
+        HStack {
+            counterCard("Ativos", model.activeTouches, color: .green)
+            counterCard("Máx. simult.", model.maxSimultaneous, color: .blue)
+            counterCard("Total", model.totalTouches, color: .orange)
+        }
+        .padding()
+    }
+
+    private var touchArea: some View {
+        ZStack {
+            MultiTouchCanvas(model: model)
+            touchDots
+            emptyState
+        }
+        .ignoresSafeArea(edges: .bottom)
+    }
+
+    @ViewBuilder
+    private var touchDots: some View {
+        ForEach(model.touches) { dot in
+            TouchDotView(dot: dot)
+        }
+    }
+
+    @ViewBuilder
+    private var emptyState: some View {
+        if model.activeTouches == 0 {
+            Text("Coloque vários dedos na tela\n(e arraste-os) para testar")
+                .multilineTextAlignment(.center)
+                .foregroundColor(.secondary)
+        }
+    }
+
     private func counterCard(_ label: String, _ value: Int, color: Color) -> some View {
         VStack(spacing: 2) {
             Text(label)
@@ -145,5 +154,23 @@ struct MultiTouchTestView: View {
         .padding(.vertical, 8)
         .background(Color(.secondarySystemBackground))
         .cornerRadius(10)
+    }
+}
+
+/// Círculo que representa um dedo na tela (extraído p/ aliviar o type-checker).
+struct TouchDotView: View {
+    let dot: TouchDot
+
+    var body: some View {
+        Circle()
+            .fill(Color.green.opacity(0.55))
+            .frame(width: 72, height: 72)
+            .position(dot.x, dot.y)
+            .overlay(
+                Circle()
+                    .stroke(Color.white.opacity(0.8), lineWidth: 2)
+                    .frame(width: 72, height: 72)
+                    .position(dot.x, dot.y)
+            )
     }
 }

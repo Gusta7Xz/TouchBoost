@@ -3,7 +3,7 @@ import CoreHaptics
 
 final class HapticsTesterModel: ObservableObject {
     @Published var statusText = "Pronto"
-    @Published var engineAvailable = CHHapticEngine.capabilitiesSupportsHaptics
+    @Published var engineAvailable = true
 
     private var engine: CHHapticEngine?
 
@@ -12,7 +12,6 @@ final class HapticsTesterModel: ObservableObject {
     }
 
     private func prepareEngine() {
-        guard engineAvailable else { return }
         do {
             engine = try CHHapticEngine()
             engine?.resetHandler = { [weak self] in
@@ -20,6 +19,7 @@ final class HapticsTesterModel: ObservableObject {
             }
             try engine?.start()
         } catch {
+            engineAvailable = false
             statusText = "Falha ao iniciar háptico: \(error.localizedDescription)"
         }
     }
@@ -101,7 +101,11 @@ struct HapticsTesterView: View {
                         Slider(value: $sharpness, in: 0.1...1.0)
                     }
                     Button {
-                        model.engineAvailable ? model.playTransient(intensity: intensity, sharpness: sharpness) : model.fallbackImpact()
+                        if model.engineAvailable {
+                            model.playTransient(intensity: intensity, sharpness: sharpness)
+                        } else {
+                            model.fallbackImpact()
+                        }
                     } label: {
                         Label("Disparar toque único (transient)", systemImage: "bolt.fill")
                             .frame(maxWidth: .infinity)
@@ -135,10 +139,18 @@ struct HapticsTesterView: View {
 
                 Section {
                     Button("Preset: clique de disparo (FPS)") {
-                        model.engineAvailable ? model.playPresetClick() : model.fallbackImpact()
+                        if model.engineAvailable {
+                            model.playPresetClick()
+                        } else {
+                            model.fallbackImpact()
+                        }
                     }
                     Button("Preset: recuo suave (recarga)") {
-                        model.engineAvailable ? model.playContinuous(intensity: 0.5, sharpness: 0.3, duration: 0.15) : model.fallbackImpact()
+                        if model.engineAvailable {
+                            model.playContinuous(intensity: 0.5, sharpness: 0.3, duration: 0.15)
+                        } else {
+                            model.fallbackImpact()
+                        }
                     }
                 } header: {
                     Text("Presets de jogo")

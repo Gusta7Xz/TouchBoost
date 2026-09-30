@@ -1,5 +1,6 @@
 import SwiftUI
 import Network
+import Darwin
 
 final class NetworkTestModel: ObservableObject {
     @Published var isRunning = false
@@ -36,8 +37,8 @@ final class NetworkTestModel: ObservableObject {
         sent = 0
         lost = 0
         pings.removeAll()
-        pinger = SimplePinger(host: host)
-        pinger?.onReply = { [weak self] rtt in
+        let newPinger = SimplePinger()
+        newPinger.onReply = { [weak self] rtt in
             DispatchQueue.main.async {
                 guard let self = self, self.isRunning else { return }
                 self.sent += 1
@@ -49,13 +50,27 @@ final class NetworkTestModel: ObservableObject {
                 }
             }
         }
-        pinger?.start()
+        newPinger.onError = { [weak self] message in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                self.timer?.invalidate()
+                self.timer = nil
+                self.pinger = nil
+                self.isRunning = false
+                self.statusText = message
+            }
+        }
+        pinger = newPinger
+        newPinger.start(host: host)
         isRunning = true
         statusText = "Medindo \(host)…"
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.pinger?.sendProbe()
         }
-        pinger?.sendProbe()
+        // Primeiro disparo após abrir o socket (sendProbe é thread-safe).
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.pinger?.sendProbe()
+        }
     }
 
     func stop() {
@@ -68,67 +83,129 @@ final class NetworkTestModel: ObservableObject {
     }
 }
 
-/// Ping ICMP via Network.framework (iOS 13+).
+/// Ping ICMP via socket DGRAM (SOCK_DGRAM + IPPROTO_ICMP) — o modo
+/// "ping sem privilégio" que o iOS permite, sem precisar de entitlements.
 final class SimplePinger {
-    private let connection: NWConnection
     private let queue = DispatchQueue(label: "touchboost.pinger")
-    private var identifier: UInt16 = UInt16.random(in: 0...UInt16.max)
+    private var socketFD: Int32 = -1
+    private var readSource: DispatchSourceRead?
+    private var destAddr = sockaddr_in()
+    private var identifier: UInt16 = UInt16.random(in: 1...UInt16.max)
     private var sequence: UInt16 = 0
+    /// Sequências enviadas e ainda sem resposta: seq -> data de envio.
+    private var pending: [UInt16: Date] = [:]
     var onReply: ((Double?) -> Void)?
+    var onError: ((String) -> Void)?
 
-    init(host: String) {
-        let params = NWParameters()
-        params.protocolStack = .icmp
-        connection = NWConnection(
-            host: NWEndpoint.Host(host),
-            port: .any,
-            using: params
-        )
-    }
-
-    func start() {
-        connection.stateUpdateHandler = { _ in }
-        connection.start(queue: queue)
+    func start(host: String) {
+        queue.async { [weak self] in
+            self?.openSocketAndResolve(host: host)
+        }
     }
 
     func stop() {
-        connection.cancel()
+        queue.async { [weak self] in
+            self?.closeSocket()
+        }
+    }
+
+    private func openSocketAndResolve(host: String) {
+        closeSocket()
+
+        // Resolve o host (IP direto ou domínio) para IPv4.
+        var hints = addrinfo()
+        hints.ai_family = AF_INET
+        hints.ai_socktype = SOCK_DGRAM
+        hints.ai_protocol = IPPROTO_ICMP
+        var results: UnsafeMutablePointer<addrinfo>?
+        guard getaddrinfo(host, nil, &hints, &results) == 0, let first = results else {
+            DispatchQueue.main.async { self.onError?("Não consegui resolver o host \(host)") }
+            return
+        }
+        defer { freeaddrinfo(results) }
+        memset(&destAddr, 0, MemoryLayout<sockaddr_in>.size)
+        memcpy(&destAddr, first.pointee.ai_addr, min(Int(first.pointee.ai_addrlen), MemoryLayout<sockaddr_in>.size))
+
+        socketFD = socket(AF_INET, SOCK_DGRAM, IPPROTO_ICMP)
+        guard socketFD >= 0 else {
+            DispatchQueue.main.async { self.onError?("Falha ao abrir socket ICMP (errno \(errno))") }
+            return
+        }
+
+        var addr = destAddr
+        addr.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+        let connectOK = withUnsafePointer(to: &addr) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                connect(socketFD, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
+            }
+        }
+        guard connectOK == 0 else {
+            close(socketFD)
+            socketFD = -1
+            DispatchQueue.main.async { self.onError?("Falha ao conectar (errno \(errno))") }
+            return
+        }
+
+        // Fonte de leitura: dispara sempre que há pacote para receber.
+        let source = DispatchSource.makeReadSource(fileDescriptor: socketFD, queue: queue)
+        source.setEventHandler { [weak self] in
+            self?.readReply()
+        }
+        source.setCancelHandler { [weak self] in
+            guard let self = self, self.socketFD >= 0 else { return }
+            close(self.socketFD)
+            self.socketFD = -1
+        }
+        source.resume()
+        readSource = source
+    }
+
+    private func closeSocket() {
+        readSource?.cancel()
+        readSource = nil
+        pending.removeAll()
+        // O fd é fechado no cancelHandler da fonte de leitura.
     }
 
     func sendProbe() {
-        sequence &+= 1
-        let packet = ICMPHeader.buildEchoRequest(identifier: identifier, sequence: sequence)
-        let startTime = Date()
-        connection.send(content: packet, completion: .contentProcessed { [weak self] error in
-            guard let self = self else { return }
-            if error != nil {
+        queue.async { [weak self] in
+            guard let self = self, self.socketFD >= 0 else { return }
+            self.sequence &+= 1
+            let seq = self.sequence
+            let packet = ICMPHeader.buildEchoRequest(identifier: self.identifier, sequence: seq)
+            var bytes = [UInt8](packet)
+            let sent = bytes.withUnsafeMutableBufferPointer { buf in
+                send(self.socketFD, buf.baseAddress, buf.count, 0)
+            }
+            guard sent > 0 else {
                 DispatchQueue.main.async { self.onReply?(nil) }
                 return
             }
-            self.receiveReply(startTime: startTime)
-        })
-    }
-
-    private func receiveReply(startTime: Date) {
-        connection.receiveMessage { [weak self] data, _, _, error in
-            guard let self = self else { return }
-            guard error == nil, let data = data else {
-                DispatchQueue.main.async { self.onReply?(nil) }
-                return
-            }
-            // Dependendo da plataforma o pacote vem com o cabeçalho IP (20 bytes) antes do ICMP.
-            var bytes = [UInt8](data)
-            if bytes.first == 0x45, bytes.count > 20 {
-                bytes = Array(bytes.dropFirst(20))
-            }
-            let recvID = bytes.count >= 8 ? ((UInt16(bytes[4]) << 8) | UInt16(bytes[5])) : 0
-            if bytes.count >= 8, bytes[0] == 0, recvID == self.identifier {
-                let rtt = Date().timeIntervalSince(startTime)
-                DispatchQueue.main.async { self.onReply?(rtt) }
-            } else {
-                DispatchQueue.main.async { self.onReply?(nil) }
+            self.pending[seq] = Date()
+            // Timeout de 3 s: sem resposta conta como perda.
+            self.queue.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+                guard let self = self else { return }
+                if self.pending.removeValue(forKey: seq) != nil {
+                    DispatchQueue.main.async { self.onReply?(nil) }
+                }
             }
         }
+    }
+
+    private func readReply() {
+        var buffer = [UInt8](repeating: 0, count: 2048)
+        var fromAddr = sockaddr()
+        var fromLen = socklen_t(MemoryLayout<sockaddr>.size)
+        let n = recvfrom(socketFD, &buffer, buffer.count, 0, &fromAddr, &fromLen)
+        guard n >= 8 else { return }
+        let bytes = Array(buffer[0..<n])
+        // Socket ICMP datagram entrega o pacote sem cabeçalho IP.
+        guard bytes[0] == 0 else { return } // Echo Reply
+        let recvID = (UInt16(bytes[4]) << 8) | UInt16(bytes[5])
+        let recvSeq = (UInt16(bytes[6]) << 8) | UInt16(bytes[7])
+        guard recvID == identifier, let startTime = pending.removeValue(forKey: recvSeq) else { return }
+        let rtt = Date().timeIntervalSince(startTime)
+        DispatchQueue.main.async { self.onReply?(rtt) }
     }
 }
 
