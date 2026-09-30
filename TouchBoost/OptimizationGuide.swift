@@ -6,15 +6,6 @@ struct OptimizationGuideView: View {
     var body: some View {
         NavigationView {
             List {
-                Section {
-                    Label(
-                        "iOS não permite que apps de terceiros alterem a taxa de amostragem da tela ou o divisor de toque do sistema. O que este app faz é MEDIR sua latência e indicar os ajustes que comprovadamente reduzem o delay. Quem promete 'aumentar a sensibilidade do toque' por software no iPhone está vendendo placebo.",
-                        systemImage: "info.circle"
-                    )
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
-                }
-
                 Section("🔥 Maior impacto — faça primeiro") {
                     TipRow(
                         title: "Desligue o Modo de Pouca Energia",
@@ -97,12 +88,6 @@ struct OptimizationGuideView: View {
                     )
                 }
 
-                Section("❌ Mitos (não perca tempo)") {
-                    Label("Apps 'turbo' da App Store — iOS isola cada app; nenhum app acelera outro.", systemImage: "xmark.circle")
-                    Label("Limpar RAM manualmente — iOS gerencia sozinho e melhor que apps.", systemImage: "xmark.circle")
-                    Label("VPNs 'anti-lag' — VPN adiciona um salto extra, nunca remove.", systemImage: "xmark.circle")
-                    Label("Fechar apps CONSTANTEMENTE — recarregar um app gasta mais energia que mantê-lo suspenso.", systemImage: "xmark.circle")
-                }
             }
             .navigationTitle("Otimizar")
             .navigationBarTitleDisplayMode(.inline)

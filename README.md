@@ -18,8 +18,6 @@ Qualquer app/IPA que promete isso é **placebo** — ou pior, um tweak de jailbr
 |---|---|
 | **⚡ Turbo** | Painel com ajuste de sensibilidade do toque, anti-delay, prioridade de GPU e modo Turbo Gamer (120 Hz real dentro do app + háptico + tela sempre acesa). |
 | **Latência** | Taconômetro de toque: mede o intervalo real entre press e release, com mínimo/média/P95/máximo e vibração a cada toque (CoreHaptics). |
-| **Toque/Háptico** | Teste o motor háptico com eventos transient/contínuos, sliders de intensidade/nitidez e presets de jogo (clique de disparo, recarga). |
-| **Multi-touch** | Desenha cada dedo na tela e conta toques simultâneos/total — bom para testar se a tela está "engolindo" toques. |
 | **Desempenho** | FPS ao vivo via CADisplayLink (detecta 60/120 Hz), memória real (phys_footprint), estado térmico e alerta de Modo de Pouca Energia. |
 | **Rede** | Ping ICMP contínuo (Network.framework) com mínimo/média/máximo/jitter/perda — teste até o roteador e até a internet. |
 | **Otimizar** | Guia com os ajustes reais do iOS, ordenados por impacto, + lista de mitos. |

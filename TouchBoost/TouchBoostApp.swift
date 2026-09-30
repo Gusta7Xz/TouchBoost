@@ -11,16 +11,15 @@ struct TouchBoostApp: App {
 }
 
 struct RootView: View {
+    @AppStorage("boost.immersiveScreen") private var immersiveScreen = false
+    @AppStorage("boost.zeroAnimations") private var zeroAnimations = false
+
     var body: some View {
         TabView {
             TurboView()
                 .tabItem { Label("Turbo", systemImage: "bolt.fill") }
             TachometerView()
                 .tabItem { Label("Latência", systemImage: "hand.tap.fill") }
-            HapticsTesterView()
-                .tabItem { Label("Toque/Háptico", systemImage: "iphone.radiowaves.left.and.right") }
-            MultiTouchTestView()
-                .tabItem { Label("Multi-touch", systemImage: "hand.point.up.left.fill") }
             PerformanceMonitorView()
                 .tabItem { Label("Desempenho", systemImage: "gauge.high") }
             NetworkTestView()
@@ -29,5 +28,12 @@ struct RootView: View {
                 .tabItem { Label("Otimizar", systemImage: "slider.horizontal.3") }
         }
         .tint(.green)
+        .statusBar(hidden: immersiveScreen)
+        .onAppear {
+            UIView.setAnimationsEnabled(!zeroAnimations)
+        }
+        .onChange(of: zeroAnimations) { disabled in
+            UIView.setAnimationsEnabled(!disabled)
+        }
     }
 }
