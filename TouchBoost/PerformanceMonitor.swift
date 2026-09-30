@@ -15,6 +15,7 @@ final class PerformanceModel: ObservableObject {
     private var frameDeltas: [Double] = []
     private var thermalObserver: NSObjectProtocol?
     private var powerObserver: NSObjectProtocol?
+    private var turboObserver: NSObjectProtocol?
 
     var thermalLabel: String {
         switch thermalState {
@@ -40,7 +41,16 @@ final class PerformanceModel: ObservableObject {
         guard displayLink == nil else { return }
         let link = CADisplayLink(target: self, selector: #selector(step(_:)))
         link.add(to: .main, forMode: .common)
+        applyFrameRateRange(to: link)
         displayLink = link
+
+        // Turbo: reaplica o range quando o modo Turbo liga/desliga.
+        turboObserver = NotificationCenter.default.addObserver(
+            forName: .turboStateChanged, object: nil, queue: .main
+        ) { [weak self] _ in
+            guard let link = self?.displayLink else { return }
+            self?.applyFrameRateRange(to: link)
+        }
 
         thermalObserver = NotificationCenter.default.addObserver(
             forName: ProcessInfo.thermalStateDidChangeNotification,
@@ -63,8 +73,19 @@ final class PerformanceModel: ObservableObject {
         displayLink = nil
         if let o = thermalObserver { NotificationCenter.default.removeObserver(o) }
         if let o = powerObserver { NotificationCenter.default.removeObserver(o) }
+        if let o = turboObserver { NotificationCenter.default.removeObserver(o) }
         thermalObserver = nil
         powerObserver = nil
+        turboObserver = nil
+    }
+
+    /// Pede 120 Hz quando o Turbo está ativo; senão deixa o sistema decidir.
+    private func applyFrameRateRange(to link: CADisplayLink) {
+        if TurboPerf.wantsMaxRefreshRate {
+            link.preferredFrameRateRange = CAFrameRateRange(minimum: 60, maximum: 120, preferred: 120)
+        } else {
+            link.preferredFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 120, preferred: 60)
+        }
     }
 
     @objc private func step(_ link: CADisplayLink) {

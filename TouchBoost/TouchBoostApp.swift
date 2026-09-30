@@ -13,6 +13,8 @@ struct TouchBoostApp: App {
 struct RootView: View {
     var body: some View {
         TabView {
+            TurboView()
+                .tabItem { Label("Turbo", systemImage: "bolt.fill") }
             TachometerView()
                 .tabItem { Label("Latência", systemImage: "hand.tap.fill") }
             HapticsTesterView()
