@@ -11,28 +11,30 @@ struct TouchBoostApp: App {
 }
 
 struct RootView: View {
-    @AppStorage("boost.immersiveScreen") private var immersiveScreen = false
-    @AppStorage("boost.zeroAnimations") private var zeroAnimations = false
+    @AppStorage("touch.immersiveScreen") private var immersiveScreen = false
+    @AppStorage("touch.instantResponse") private var instantResponse = false
 
     var body: some View {
         TabView {
-            TurboView()
-                .tabItem { Label("Turbo", systemImage: "bolt.fill") }
+            TouchTabView()
+                .tabItem { Label("Toque", systemImage: "hand.tap.fill") }
+            OptimizationTabView()
+                .tabItem { Label("Otimização", systemImage: "bolt.circle.fill") }
             TachometerView()
-                .tabItem { Label("Latência", systemImage: "hand.tap.fill") }
+                .tabItem { Label("Latência", systemImage: "speedometer") }
             PerformanceMonitorView()
                 .tabItem { Label("Desempenho", systemImage: "gauge.high") }
             NetworkTestView()
                 .tabItem { Label("Rede", systemImage: "wifi") }
             OptimizationGuideView()
-                .tabItem { Label("Otimizar", systemImage: "slider.horizontal.3") }
+                .tabItem { Label("Dicas", systemImage: "lightbulb") }
         }
         .tint(.green)
         .statusBar(hidden: immersiveScreen)
         .onAppear {
-            UIView.setAnimationsEnabled(!zeroAnimations)
+            UIView.setAnimationsEnabled(!instantResponse)
         }
-        .onChange(of: zeroAnimations) { disabled in
+        .onChange(of: instantResponse) { disabled in
             UIView.setAnimationsEnabled(!disabled)
         }
     }

@@ -16,7 +16,8 @@ Qualquer app/IPA que promete isso é **placebo** — ou pior, um tweak de jailbr
 
 | Aba | Função |
 |---|---|
-| **⚡ Turbo** | Painel com ajuste de sensibilidade do toque, anti-delay, prioridade de GPU e modo Turbo Gamer (120 Hz real dentro do app + háptico + tela sempre acesa). |
+| **⚡ Toque** | Aba exclusiva de toque: Turbo de Toque, sliders de força e textura, presets (Suave/Precisão/FPS Rápido), confirmação háptica, resposta instantânea e tela imersiva. |
+| **🚀 Otimização** | Aba exclusiva de desempenho: Turbo de Otimização, modos Econômico/Equilibrado/Máximo, anti-delay, GPU 120 Hz, boost de processos, liberar memória, limpar cache, aquecer CPU e Sessão de Jogo com FPS. |
 | **Latência** | Taconômetro de toque: mede o intervalo real entre press e release, com mínimo/média/P95/máximo e vibração a cada toque (CoreHaptics). |
 | **Desempenho** | FPS ao vivo via CADisplayLink (detecta 60/120 Hz), memória real (phys_footprint), estado térmico e alerta de Modo de Pouca Energia. |
 | **Rede** | Ping ICMP contínuo (Network.framework) com mínimo/média/máximo/jitter/perda — teste até o roteador e até a internet. |
