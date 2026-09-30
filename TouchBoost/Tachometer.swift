@@ -92,88 +92,93 @@ struct TachometerView: View {
     @StateObject private var model = TachometerModel()
 
     var body: some View {
-        NavigationView {
-            VStack(spacing: 16) {
-                statsHeader
-                TapPad(model: model)
-                    .padding(.horizontal)
-                sampleList
+        TBScreen {
+            TBHero(
+                title: "TACONÔMETRO",
+                subtitle: model.isMeasuring ? "Medindo… toque na área abaixo" : "Latência real entre press e release",
+                systemImage: "speedometer",
+                stat1: model.stats.map { String(format: "%.0f", $0.min * 1000) } ?? "—",
+                stat2: model.stats.map { String(format: "%.0f", $0.avg * 1000) } ?? "—",
+                stat3: model.stats.map { String(format: "%.0f", $0.p95 * 1000) } ?? "—"
+            )
+
+            TBSectionHeader(title: "Área de Medição")
+
+            TapPad(model: model)
+                .frame(height: 170)
+
+            HStack(spacing: 10) {
+                Button {
+                    if model.isMeasuring { model.stop() } else { model.start() }
+                } label: {
+                    Label(model.isMeasuring ? "Parar" : "Medir", systemImage: model.isMeasuring ? "stop.fill" : "play.fill")
+                        .font(.subheadline.bold())
+                        .foregroundColor(model.isMeasuring ? .red : .black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(RoundedRectangle(cornerRadius: 12).fill(model.isMeasuring ? Color.red.opacity(0.14) : TBTheme.accent))
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    model.reset()
+                } label: {
+                    Label("Zerar", systemImage: "arrow.counterclockwise")
+                        .font(.subheadline.bold())
+                        .foregroundColor(.primary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.07)))
+                }
+                .buttonStyle(.plain)
             }
-            .navigationTitle("Taconômetro de Toque")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(model.isMeasuring ? "Parar" : "Medir") {
-                        model.isMeasuring ? model.stop() : model.start()
+
+            if let s = model.stats {
+                TBSectionHeader(title: "Estatísticas")
+                TBCard {
+                    HStack(spacing: 10) {
+                        tapStat("Mín", s.min * 1000, .green)
+                        tapStat("Médio", s.avg * 1000, .yellow)
+                        tapStat("P95", s.p95 * 1000, .orange)
+                        tapStat("Máx", s.max * 1000, .red)
                     }
                 }
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Zerar") { model.reset() }
+            }
+
+            if !model.samples.isEmpty {
+                TBSectionHeader(title: "Últimos Toques")
+                TBCard {
+                    VStack(spacing: 8) {
+                        ForEach(Array(model.samples.suffix(6).enumerated().reversed()), id: \.element.id) { _, sample in
+                            HStack {
+                                Text(sample.timestamp, style: .time)
+                                    .font(.caption.monospacedDigit())
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text(String(format: "%.1f ms", sample.interval * 1000))
+                                    .font(.subheadline.monospacedDigit().bold())
+                                    .foregroundColor(sample.interval < 0.08 ? TBTheme.accent : (sample.interval < 0.12 ? .yellow : .red))
+                            }
+                        }
+                    }
                 }
             }
-            .onDisappear { model.stop() }
         }
-        .navigationViewStyle(.stack)
+        .onDisappear { model.stop() }
     }
 
-    private var statsHeader: some View {
-        Group {
-            if let s = model.stats {
-                HStack(spacing: 12) {
-                    statCard("Mín", s.min, color: .green)
-                    statCard("Médio", s.avg, color: .yellow)
-                    statCard("P95", s.p95, color: .orange)
-                    statCard("Máx", s.max, color: .red)
-                }
-            } else {
-                Text("Toque repetidamente na área abaixo para medir a latência de toque (intervalo entre press e release).\n\nAtive \"Medir\" para começar e receber vibração a cada toque.")
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.top, 8)
-            }
-        }
-        .padding(.horizontal)
-    }
-
-    private func statCard(_ label: String, _ value: Double, color: Color) -> some View {
-        VStack(spacing: 2) {
-            Text(label)
-                .font(.caption2)
-                .foregroundColor(.secondary)
-            Text(String(format: "%.0f", value * 1000))
-                .font(.title3.monospacedDigit().bold())
+    private func tapStat(_ label: String, _ ms: Double, _ color: Color) -> some View {
+        VStack(spacing: 3) {
+            Text(String(format: "%.0f", ms))
+                .font(.system(.headline, design: .rounded).bold())
                 .foregroundColor(color)
-            Text("ms")
-                .font(.caption2)
+            Text(label + " (ms)")
+                .font(.system(size: 10, weight: .medium))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(10)
-    }
-
-    private var sampleList: some View {
-        Group {
-            if !model.samples.isEmpty {
-                List(model.samples.suffix(50).reversed()) { sample in
-                    HStack {
-                        Text(sample.timestamp, style: .time)
-                            .font(.caption.monospacedDigit())
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Text(String(format: "%.1f ms", sample.interval * 1000))
-                            .font(.body.monospacedDigit())
-                            .foregroundColor(sample.interval < 0.08 ? .green : (sample.interval < 0.12 ? .yellow : .red))
-                    }
-                    .listRowBackground(Color(.secondarySystemBackground))
-                }
-                .listStyle(.plain)
-            } else {
-                Spacer()
-            }
-        }
+        .padding(.vertical, 10)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.05)))
     }
 }
 
@@ -184,8 +189,10 @@ struct TapPad: UIViewRepresentable {
     func makeUIView(context: Context) -> PadView {
         let v = PadView()
         v.model = model
-        v.backgroundColor = UIColor.secondarySystemBackground
-        v.layer.cornerRadius = 16
+        v.backgroundColor = UIColor(red: 0.07, green: 0.11, blue: 0.14, alpha: 1)
+        v.layer.cornerRadius = 18
+        v.layer.borderWidth = 1
+        v.layer.borderColor = UIColor.white.withAlphaComponent(0.08).cgColor
         v.isMultipleTouchEnabled = true
         return v
     }
@@ -217,7 +224,7 @@ struct TapPad: UIViewRepresentable {
                 }
             }
             if trackedTouches.isEmpty {
-                backgroundColor = UIColor.secondarySystemBackground
+                backgroundColor = UIColor(red: 0.07, green: 0.11, blue: 0.14, alpha: 1)
             }
         }
 
@@ -225,7 +232,7 @@ struct TapPad: UIViewRepresentable {
             super.touchesCancelled(touches, with: event)
             for t in touches { trackedTouches.removeValue(forKey: t) }
             if trackedTouches.isEmpty {
-                backgroundColor = UIColor.secondarySystemBackground
+                backgroundColor = UIColor(red: 0.07, green: 0.11, blue: 0.14, alpha: 1)
             }
         }
     }

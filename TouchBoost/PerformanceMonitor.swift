@@ -128,115 +128,115 @@ struct PerformanceMonitorView: View {
     @StateObject private var model = PerformanceModel()
 
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 16) {
-                    fpsCard
-                    memoryCard
-                    thermalCard
-                    tipsCard
-                }
-                .padding()
-            }
-            .navigationTitle("Desempenho")
-            .navigationBarTitleDisplayMode(.inline)
+        TBScreen {
+            TBHero(
+                title: "DESEMPENHO",
+                subtitle: "FPS, memória e temperatura ao vivo",
+                systemImage: "gauge.high",
+                stat1: ("\(Int(model.fps))", "FPS agora"),
+                stat2: ("\(Int(model.maxObservedFPS))", "FPS máx"),
+                stat3: (String(format: "%.0f", model.memoryFootprintMB), "MB em uso")
+            )
             .onAppear { model.start() }
             .onDisappear { model.stop() }
-        }
-        .navigationViewStyle(.stack)
-    }
 
-    private var fpsCard: some View {
-        VStack(spacing: 8) {
-            Text("\(Int(model.fps))")
-                .font(.system(size: 56, weight: .bold, design: .monospaced))
-                .foregroundColor(model.fps >= 55 ? .green : (model.fps >= 45 ? .yellow : .red))
-            Text("FPS atuais · quadro: \(model.frameTimeMs, specifier: "%.1f") ms")
-                .font(.footnote)
-                .foregroundColor(.secondary)
-            Text("Máximo observado: \(Int(model.maxObservedFPS)) FPS")
-                .font(.caption)
-                .foregroundColor(.secondary)
+            TBSectionHeader(title: "Taxa de Quadros")
 
-            // Histórico simples em barras
-            HStack(alignment: .bottom, spacing: 1) {
-                ForEach(Array(model.fpsHistory.enumerated()), id: \.offset) { _, value in
-                    Rectangle()
-                        .fill(value >= 55 ? Color.green : (value >= 45 ? Color.yellow : Color.red))
-                        .frame(height: max(2, CGFloat(value / 120) * 60))
+            TBCard {
+                VStack(spacing: 10) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("\(Int(model.fps))")
+                            .font(.system(size: 58, weight: .heavy, design: .rounded))
+                            .foregroundColor(model.fps >= 100 ? TBTheme.accent : (model.fps >= 55 ? .yellow : .red))
+                        Text("FPS")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text("quadro: \(model.frameTimeMs, specifier: "%.1f") ms")
+                                .font(.caption.monospacedDigit())
+                                .foregroundColor(.secondary)
+                            Text("pico: \(Int(model.maxObservedFPS)) FPS")
+                                .font(.caption.monospacedDigit().bold())
+                                .foregroundColor(TBTheme.accent)
+                        }
+                    }
+
+                    GeometryReader { geo in
+                        HStack(alignment: .bottom, spacing: 2) {
+                            ForEach(Array(model.fpsHistory.enumerated()), id: \.offset) { _, value in
+                                RoundedRectangle(cornerRadius: 1.5)
+                                    .fill(value >= 100 ? TBTheme.accent : (value >= 55 ? Color.yellow : Color.red))
+                                    .frame(height: max(3, CGFloat(value / 120) * geo.size.height))
+                            }
+                        }
+                    }
+                    .frame(height: 56)
                 }
             }
-            .frame(height: 60)
-            .frame(maxWidth: .infinity, alignment: .bottom)
+
+            TBSectionHeader(title: "Sistema")
+
+            TBCard {
+                VStack(spacing: 14) {
+                    HStack(spacing: 12) {
+                        systemRow("memorychip", "Memória", String(format: "%.0f MB", model.memoryFootprintMB), .blue)
+                        systemRow("thermometer.medium", "Térmico", model.thermalLabel, model.thermalColor)
+                    }
+                    HStack(spacing: 12) {
+                        systemRow(model.lowPowerMode ? "battery.25" : "battery.100", "Pouca Energia", model.lowPowerMode ? "ATIVO" : "Inativo", model.lowPowerMode ? .orange : TBTheme.accent)
+                        systemRow("cpu", "Processador", "arm64", .purple)
+                    }
+                }
+            }
+
+            TBSectionHeader(title: "Leitura dos Dados")
+
+            TBCard {
+                VStack(alignment: .leading, spacing: 8) {
+                    bullet("Quedas de FPS com térmico em \"quente\" = throttling: o aparelho se aquecendo e reduzindo desempenho.")
+                    bullet("Pouca Energia ativo reduz o teto de FPS — desligue antes de jogar.")
+                    bullet("Use o pico de FPS como referência antes e depois de aplicar o Turbo na aba Otimização.")
+                }
+            }
         }
-        .frame(maxWidth: .infinity)
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(14)
     }
 
-    private var memoryCard: some View {
-        HStack {
-            Image(systemName: "memorychip")
-                .font(.title2)
-            VStack(alignment: .leading) {
-                Text("Memória em uso")
-                    .font(.subheadline)
-                Text("\(model.memoryFootprintMB, specifier: "%.1f") MB")
-                    .font(.title3.monospacedDigit().bold())
+    private func systemRow(_ icon: String, _ label: String, _ value: String, _ color: Color) -> some View {
+        HStack(spacing: 10) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(color.opacity(0.16))
+                    .frame(width: 34, height: 34)
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(color)
+            }
+            VStack(alignment: .leading, spacing: 1) {
+                Text(label)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                Text(value)
+                    .font(.caption.bold())
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
             Spacer()
         }
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(14)
+        .padding(10)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.05)))
     }
 
-    private var thermalCard: some View {
-        VStack(spacing: 12) {
-            HStack {
-                Image(systemName: "thermometer.medium")
-                    .font(.title2)
-                VStack(alignment: .leading) {
-                    Text("Estado térmico")
-                        .font(.subheadline)
-                    Text(model.thermalLabel)
-                        .font(.title3.bold())
-                        .foregroundColor(model.thermalColor)
-                }
-                Spacer()
-            }
-            Divider()
-            HStack {
-                Image(systemName: model.lowPowerMode ? "battery.25" : "battery.100")
-                    .font(.title2)
-                    .foregroundColor(model.lowPowerMode ? .orange : .green)
-                VStack(alignment: .leading) {
-                    Text("Modo de Pouca Energia")
-                        .font(.subheadline)
-                    Text(model.lowPowerMode ? "ATIVO — limita FPS em jogos!" : "Inativo")
-                        .font(.subheadline.bold())
-                        .foregroundColor(model.lowPowerMode ? .orange : .green)
-                }
-                Spacer()
-            }
-        }
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(14)
-    }
-
-    private var tipsCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label("Como interpretar", systemImage: "lightbulb")
-                .font(.headline)
-            Text("• Quedas de FPS + estado térmico \"Séria/Crítica\" = throttling térmico: o aparelho está se aquecendo e reduzindo desempenho.\n• Modo de Pouca Energia ativo reduz o teto de FPS — desligue antes de jogar.\n• Se o FPS alterna entre 60 e 120, ative Limite de Quadros em Ajustes → Acessibilidade → Movimento → Limitar FPS para estabilizar em 60.\n• TouchBoost mostra o FPS máximo que SEU aparelho entrega de verdade — use como referência antes e depois de otimizações.")
-                .font(.footnote)
+    private func bullet(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Circle()
+                .fill(TBTheme.accent)
+                .frame(width: 5, height: 5)
+                .padding(.top, 5)
+            Text(text)
+                .font(.caption)
                 .foregroundColor(.secondary)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(14)
     }
 }

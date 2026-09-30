@@ -1,121 +1,92 @@
 import SwiftUI
 
-/// Guia de otimização com ajustes REAIS que reduzem a latência percebida.
-/// Nada de "módulos" falsos: são configurações do iOS que impactam de verdade.
+// MARK: - Aba 💡 Dicas: guia de ajustes do sistema
+
 struct OptimizationGuideView: View {
     var body: some View {
-        NavigationView {
-            List {
-                Section("🔥 Maior impacto — faça primeiro") {
-                    TipRow(
-                        title: "Desligue o Modo de Pouca Energia",
-                        detail: "Ajustes → Bateria. Ele reduz o teto de FPS do aparelho inteiro e adiciona input lag. É o ajuste nº 1 para jogos.",
-                        icon: "battery.25", color: .orange
-                    )
-                    TipRow(
-                        title: "Diminuir Movimento: LIGADO (com truque)",
-                        detail: "Ajustes → Acessibilidade → Movimento → Diminuir Movimento: ON, e depois ATIVE também 'Auto-reproduzir mensagens de vídeo: OFF' e os toggles de 'Efeitos de plano de fundo'. Isso corta animações do sistema e o conteúdo chega mais rápido. Acelera sensação geral do aparelho.",
-                        icon: "arrow.left.arrow.right.circle", color: .blue
-                    )
-                    TipRow(
-                        title: "Ative o modo 120 Hz (ProMotion)",
-                        detail: "Só iPhone Pro. Ajustes → Acessibilidade → Movimento → Limite de Quadros: Desativado. Se o jogo não é fluido em 120, limite para 60 — estabilidade vale mais que número alto.",
-                        icon: "display", color: .purple
-                    )
-                    TipRow(
-                        title: "Feche TODOS os apps em segundo plano",
-                        detail: "Troque de app e feche tudo antes de jogar. RAM livre evita o sistema recarregar o jogo do zero quando ele é suspenso.",
-                        icon: "xmark.app", color: .red
-                    )
-                }
+        TBScreen {
+            TBHero(
+                title: "DICAS DE OTIMIZAÇÃO",
+                subtitle: "Ajustes do iOS que aceleram o aparelho",
+                systemImage: "lightbulb.fill",
+                stat1: ("15", "Dicas"),
+                stat2: ("4", "Categorias"),
+                stat3: ("5 min", "Leitura")
+            )
 
-                Section("🎮 Jogos — input lag") {
-                    TipRow(
-                        title: "Reduza a qualidade gráfica e suba o FPS nas configs do JOGO",
-                        detail: "Dentro do jogo: FoV alto e gráficos baixos → mais FPS → menos delay por quadro. Delay de toque real = tempo até o PRÓXIMO quadro renderizar. 120 FPS = input lido a cada 8 ms; 30 FPS = a cada 33 ms.",
-                        icon: "gamecontroller", color: .green
-                    )
-                    TipRow(
-                        title: "Procure o Modo de Jogo do iOS (se disponível)",
-                        detail: "Em versões recentes do iOS, o Modo de Jogo reduz atividade em segundo plano e prioriza toque/Bluetooth automaticamente. Se o seu modelo tiver, deixe ativo nos jogos.",
-                        icon: "trophy", color: .yellow
-                    )
-                    TipRow(
-                        title: "Bluetooth: desligue fones/controles que não usa",
-                        detail: "Cada dispositivo Bluetooth adiciona 20–100 ms de latência em áudio/entrada. Se joga com som, prefira fone com fio.",
-                        icon: "antenna.radiowaves.left.and.right.slash", color: .blue
-                    )
-                }
+            tipSection("🔥 Maior Impacto", [
+                Tip("Desligue o Modo de Pouca Energia", "Ajustes → Bateria. Ele reduz o teto de FPS do aparelho inteiro e adiciona input lag. É o ajuste nº 1 para jogos.", "battery.25", .orange),
+                Tip("Diminuir Movimento: LIGADO", "Ajustes → Acessibilidade → Movimento → Diminuir Movimento: ON. Corta animações do sistema e o conteúdo chega mais rápido.", "arrow.left.arrow.right.circle", .blue),
+                Tip("Ative o modo 120 Hz (ProMotion)", "Só iPhone Pro. Ajustes → Acessibilidade → Movimento → Limite de Quadros: Desativado. Se o jogo não é fluido em 120, limite para 60 — estabilidade vale mais.", "display", .purple),
+                Tip("Feche todos os apps em segundo plano", "Troque de app e feche tudo antes de jogar. RAM livre evita o sistema recarregar o jogo do zero quando ele é suspenso.", "xmark.app", .red)
+            ])
 
-                Section("🌐 Rede — reduz ping") {
-                    TipRow(
-                        title: "Wi-Fi 5 GHz em vez de 2,4 GHz",
-                        detail: "5 GHz tem menos interferência e latência estável (1–5 ms até o roteador). 2,4 GHz sofre com micro-ondas e vizinhos. Teste as duas bandas com o teste de rede deste app.",
-                        icon: "wifi", color: .green
-                    )
-                    TipRow(
-                        title: "Fique perto do roteador e longe de paredes",
-                        detail: "Cada parede multiplica retransmissões. Se o ping até o roteador (teste com o IP dele aqui no app) já for >10 ms, o problema é o sinal, não a operadora.",
-                        icon: "dot.radiowaves.left.and.right", color: .blue
-                    )
-                    TipRow(
-                        title: "Pare de baixar/atualizar antes de jogar",
-                        detail: "Downloads em segundo plano causam picos de bufferbloat (ping sobe 100+ ms). Pause tudo em Ajustes → Geral → Atualização em Segundo Plano.",
-                        icon: "arrow.down.circle", color: .orange
-                    )
-                }
+            tipSection("🎮 Jogos — Input Lag", [
+                Tip("Gráficos baixos e FPS alto nas configs do jogo", "Dentro do jogo: FoV alto e gráficos baixos → mais FPS → menos delay por quadro. 120 FPS = input lido a cada 8 ms; 30 FPS = a cada 33 ms.", "gamecontroller", .green),
+                Tip("Procure o Modo de Jogo do iOS", "Em versões recentes do iOS, o Modo de Jogo reduz atividade em segundo plano e prioriza toque/Bluetooth automaticamente.", "trophy", .yellow),
+                Tip("Bluetooth: desligue o que não usa", "Cada dispositivo Bluetooth adiciona 20–100 ms de latência em áudio/entrada. Se joga com som, prefira fone com fio.", "antenna.radiowaves.left.and.right.slash", .blue)
+            ])
 
-                Section("🔋 Sustentação — evite throttling") {
-                    TipRow(
-                        title: "Tire a capinha antes de jogar",
-                        detail: "O calor fica retido e dispara o throttling térmico (veja o estado térmico na aba Desempenho). Sem capinha = FPS estável por mais tempo.",
-                        icon: "thermometer.sun", color: .red
-                    )
-                    TipRow(
-                        title: "Carregando? Jogue só com carregador de potência alta e sem capinha",
-                        detail: "Carregar enquanto joga aquece o dobro. Se precisar, use carregador com boa potência para o aparelho priorizar energia em vez de poupar bateria.",
-                        icon: "bolt.badge.clock", color: .yellow
-                    )
-                    TipRow(
-                        title: "Reduza brilho para 50–70%",
-                        detail: "Brilho máximo em OLED aquece o aparelho e acelera throttling. 50% é o ponto ideal entre visibilidade e temperatura.",
-                        icon: "sun.min", color: .orange
-                    )
-                    TipRow(
-                        title: "Reinicie o iPhone antes de sessões longas",
-                        detail: "Semana sem reiniciar = processos zumbis acumulando RAM. Reiniciar limpa tudo e dá o melhor estado possível para o jogo.",
-                        icon: "arrow.clockwise.circle", color: .blue
-                    )
-                }
+            tipSection("🌐 Rede — Ping", [
+                Tip("Wi-Fi 5 GHz em vez de 2,4 GHz", "5 GHz tem menos interferência e latência estável (1–5 ms até o roteador). 2,4 GHz sofre com micro-ondas e vizinhos. Compare com a aba Rede.", "wifi", .green),
+                Tip("Fique perto do roteador", "Cada parede multiplica retransmissões. Meça o ping até o IP do roteador na aba Rede — se for alto, o problema é o sinal.", "dot.radiowaves.left.and.right", .blue),
+                Tip("Pare downloads antes de jogar", "Downloads em segundo plano causam picos de ping (100+ ms). Pause em Ajustes → Geral → Atualização em Segundo Plano.", "arrow.down.circle", .orange)
+            ])
 
-            }
-            .navigationTitle("Otimizar")
-            .navigationBarTitleDisplayMode(.inline)
+            tipSection("🔋 Sustentação — Sem Throttling", [
+                Tip("Tire a capinha antes de jogar", "O calor fica retido e dispara o throttling térmico (acompanhe na aba Desempenho). Sem capinha = FPS estável por mais tempo.", "thermometer.sun", .red),
+                Tip("Cuidado ao carregar jogando", "Carregar enquanto joga aquece o dobro. Se precisar, use carregador de potência alta e sem capinha.", "bolt.badge.clock", .yellow),
+                Tip("Brilho entre 50–70%", "Brilho máximo em OLED aquece o aparelho e acelera throttling. 50% é o ponto ideal entre visibilidade e temperatura.", "sun.min", .orange),
+                Tip("Reinicie o iPhone antes de sessões longas", "Semana sem reiniciar = processos acumulando RAM. Reiniciar dá o melhor estado possível para o jogo.", "arrow.clockwise.circle", .blue)
+            ])
         }
-        .navigationViewStyle(.stack)
+    }
+
+    private func tipSection(_ title: String, _ tips: [Tip]) -> some View {
+        VStack(spacing: 10) {
+            TBSectionHeader(title: title)
+            ForEach(Array(tips.enumerated()), id: \.offset) { _, tip in
+                TipCard(tip: tip)
+            }
+        }
     }
 }
 
-struct TipRow: View {
+struct Tip {
     let title: String
     let detail: String
     let icon: String
     let color: Color
+}
+
+struct TipCard: View {
+    let tip: Tip
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundColor(color)
-                .frame(width: 30)
+            ZStack {
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .fill(tip.color.opacity(0.16))
+                    .frame(width: 38, height: 38)
+                Image(systemName: tip.icon)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(tip.color)
+            }
             VStack(alignment: .leading, spacing: 4) {
-                Text(title)
+                Text(tip.title)
                     .font(.subheadline.bold())
-                Text(detail)
-                    .font(.footnote)
+                    .foregroundColor(.primary)
+                Text(tip.detail)
+                    .font(.caption)
                     .foregroundColor(.secondary)
             }
+            Spacer(minLength: 0)
         }
-        .padding(.vertical, 2)
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(TBTheme.cardGradient)
+                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.white.opacity(0.06), lineWidth: 1))
+        )
     }
 }

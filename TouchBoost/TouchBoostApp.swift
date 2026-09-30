@@ -29,7 +29,7 @@ struct RootView: View {
             OptimizationGuideView()
                 .tabItem { Label("Dicas", systemImage: "lightbulb") }
         }
-        .tint(.green)
+        .tint(TBTheme.accent)
         .statusBar(hidden: immersiveScreen)
         .onAppear {
             UIView.setAnimationsEnabled(!instantResponse)

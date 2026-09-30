@@ -14,154 +14,123 @@ struct TouchTabView: View {
     @State private var applyStatus = ""
 
     var body: some View {
-        NavigationView {
-            Form {
-                masterSection
-                sensitivitySection
-                feedbackSection
-                responseSection
-                applySection
-            }
-            .navigationTitle("⚡ Toque")
-            .navigationBarTitleDisplayMode(.inline)
-            .simultaneousGesture(TapGesture().onEnded {
-                if hapticFeedback {
-                    TurboHapticsEngine.shared.tap(intensity: Float(sensitivity / 100), sharpness: Float(sharpness / 100))
-                }
-            })
-        }
-        .navigationViewStyle(.stack)
-    }
+        TBScreen {
+            TBHero(
+                title: "TOQUE TURBO",
+                subtitle: "Sensibilidade e resposta tátil",
+                systemImage: "hand.tap.fill",
+                stat1: ("\(Int(sensitivity))%", "Força"),
+                stat2: ("\(Int(sharpness))%", "Textura"),
+                stat3: (hapticFeedback ? "ON" : "OFF", "Háptico")
+            )
 
-    // MARK: Seções
+            TBSectionHeader(title: "Sensibilidade do Toque")
 
-    private var masterSection: some View {
-        Section {
-            Toggle(isOn: $touchTurbo) {
-                HStack {
-                    Image(systemName: "hand.tap.fill")
-                        .font(.title)
-                        .foregroundColor(touchTurbo ? .green : .gray)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("TURBO DE TOQUE")
-                            .font(.headline)
-                            .foregroundColor(touchTurbo ? .green : .primary)
-                        Text("Sensibilidade máxima com um toque")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+            TBSliderRow(
+                title: "Força do toque",
+                detail: "Intensidade da resposta a cada toque",
+                icon: "hand.tap.fill", iconColor: .green,
+                value: $sensitivity, range: 0...100, suffix: "%"
+            )
+            TBSliderRow(
+                title: "Textura do toque",
+                detail: "Nitidez da vibração (seca a cristalina)",
+                icon: "waveform.path", iconColor: .blue,
+                value: $sharpness, range: 0...100, suffix: "%"
+            )
+
+            TBCard {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("PRESETS")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.secondary)
+                    HStack(spacing: 10) {
+                        presetCard("Suave", 55, 25, "cloud.fill")
+                        presetCard("Precisão", 75, 85, "scope")
+                        presetCard("FPS Rápido", 100, 60, "bolt.fill")
                     }
                 }
             }
-            .tint(.green)
-            .onChange(of: touchTurbo) { on in
-                if on {
-                    sensitivity = 100
-                    sharpness = 80
-                    hapticFeedback = true
-                    instantResponse = true
-                    immersiveScreen = true
-                    applyAll()
-                }
+
+            TBSectionHeader(title: "Feedback e Resposta")
+
+            TBToggleRow(
+                title: "Confirmação háptica",
+                detail: "Vibra em cada toque na força escolhida",
+                icon: "iphone.radiowaves.left.and.right", iconColor: .green,
+                isOn: $hapticFeedback
+            )
+            TBToggleRow(
+                title: "Resposta instantânea",
+                detail: "Zero animações entre toque e ação",
+                icon: "minus.circle", iconColor: .orange,
+                isOn: $instantResponse
+            )
+            TBToggleRow(
+                title: "Tela imersiva",
+                detail: "Remove a barra de status",
+                icon: "arrow.up.backward.and.arrow.down.forward", iconColor: .purple,
+                isOn: $immersiveScreen
+            )
+
+            TBPrimaryButton(title: "APLICAR TOQUE", systemImage: "hand.tap.fill") {
+                applyAll()
+            }
+
+            if !applyStatus.isEmpty {
+                Text(applyStatus)
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .multilineTextAlignment(.center)
             }
         }
+        .simultaneousGesture(TapGesture().onEnded {
+            if hapticFeedback {
+                TurboHapticsEngine.shared.tap(intensity: Float(sensitivity / 100), sharpness: Float(sharpness / 100))
+            }
+        })
     }
 
-    private var sensitivitySection: some View {
-        Section("Sensibilidade do toque") {
-            HStack {
-                Text("Força")
-                Spacer()
-                Text("\(Int(sensitivity))%")
-                    .font(.subheadline.monospacedDigit().bold())
-                    .foregroundColor(sensitivity >= 70 ? .green : (sensitivity >= 40 ? .yellow : .orange))
-            }
-            Slider(value: $sensitivity, in: 0...100, step: 5)
-
-            HStack {
-                Text("Textura do toque")
-                Spacer()
-                Text("\(Int(sharpness))%")
-                    .font(.subheadline.monospacedDigit().bold())
-                    .foregroundColor(.blue)
-            }
-            Slider(value: $sharpness, in: 0...100, step: 5)
-
-            HStack {
-                presetButton("Suave", 55, 25)
-                presetButton("Precisão", 75, 85)
-                presetButton("FPS Rápido", 100, 60)
-            }
-        }
-    }
-
-    private func presetButton(_ title: String, _ s: Double, _ sh: Double) -> some View {
-        Button {
+    private func presetCard(_ title: String, _ s: Double, _ sh: Double, _ icon: String) -> some View {
+        let selected = sensitivity == s && sharpness == sh
+        return Button {
             sensitivity = s
             sharpness = sh
             if hapticFeedback {
                 TurboHapticsEngine.shared.tap(intensity: Float(s / 100), sharpness: Float(sh / 100))
             }
         } label: {
-            Text(title)
-                .font(.footnote.bold())
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 6)
-                .background(Color(.tertiarySystemBackground))
-                .cornerRadius(8)
+            VStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundColor(selected ? TBTheme.accent : .secondary)
+                Text(title)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(selected ? TBTheme.accent : .primary)
+                Text("\(Int(s))/\(Int(sh))")
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(selected ? TBTheme.accent.opacity(0.14) : Color.white.opacity(0.05))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(selected ? TBTheme.accent.opacity(0.6) : Color.white.opacity(0.06), lineWidth: 1)
+                    )
+            )
         }
         .buttonStyle(.plain)
     }
-
-    private var feedbackSection: some View {
-        Section("Feedback tátil") {
-            Toggle(isOn: $hapticFeedback) {
-                Label("Confirmação háptica", systemImage: "iphone.radiowaves.left.and.right")
-            }
-            .tint(.green)
-        }
-    }
-
-    private var responseSection: some View {
-        Section("Resposta da tela") {
-            Toggle(isOn: $instantResponse) {
-                Label("Resposta instantânea (zero animações)", systemImage: "minus.circle")
-            }
-            .tint(.green)
-
-            Toggle(isOn: $immersiveScreen) {
-                Label("Tela imersiva (sem barra de status)", systemImage: "arrow.up.backward.and.arrow.down.forward")
-            }
-            .tint(.green)
-        }
-    }
-
-    private var applySection: some View {
-        Section {
-            Button {
-                applyAll()
-            } label: {
-                Label("APLICAR TOQUE", systemImage: "hand.tap.fill")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(touchTurbo ? .green : .blue)
-
-            if !applyStatus.isEmpty {
-                Text(applyStatus)
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
-            }
-        }
-    }
-
-    // MARK: Ações
 
     private func applyAll() {
         TurboPerf.setZeroAnimations(instantResponse)
         if hapticFeedback {
             TurboHapticsEngine.shared.tap(intensity: Float(sensitivity / 100), sharpness: Float(sharpness / 100))
         }
-        applyStatus = "Toque aplicado: força \(Int(sensitivity))%, textura \(Int(sharpness))%, háptico \(hapticFeedback ? "ON" : "OFF"), resposta \(instantResponse ? "instantânea" : "padrão")."
+        applyStatus = "Toque aplicado: força \(Int(sensitivity))% · textura \(Int(sharpness))% · háptico \(hapticFeedback ? "ON" : "OFF") · resposta \(instantResponse ? "instantânea" : "padrão")"
     }
 }

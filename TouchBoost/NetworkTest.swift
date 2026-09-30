@@ -251,87 +251,130 @@ struct NetworkTestView: View {
     @StateObject private var model = NetworkTestModel()
 
     var body: some View {
-        NavigationView {
-            Form {
-                Section {
-                    TextField("Host (IP ou domínio)", text: $model.host)
-                        .keyboardType(.asciiCapable)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
+        TBScreen {
+            TBHero(
+                title: "TESTE DE REDE",
+                subtitle: model.isRunning ? "Medindo \(model.host)…" : "Ping, jitter e perda de pacotes",
+                systemImage: "wifi",
+                stat1: model.stats.map { String(format: "%.0f", $0.avg) } ?? "—",
+                stat2: model.stats.map { String(format: "%.0f", $0.jitter) } ?? "—",
+                stat3: String(format: "%.0f", model.lossPercent)
+            )
+
+            TBSectionHeader(title: "Alvo")
+
+            TBCard {
+                VStack(spacing: 12) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "globe")
+                            .foregroundColor(TBTheme.accent)
+                        TextField("IP ou domínio (ex.: 1.1.1.1)", text: $model.host)
+                            .keyboardType(.asciiCapable)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                            .font(.system(.subheadline, design: .monospaced))
+                    }
+                    .padding(12)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.06)))
+
                     if model.isRunning {
-                        Button(role: .destructive) {
+                        Button {
                             model.stop()
                         } label: {
                             Label("Parar medição", systemImage: "stop.fill")
+                                .font(.subheadline.bold())
+                                .foregroundColor(.red)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(RoundedRectangle(cornerRadius: 12).fill(Color.red.opacity(0.12)))
                         }
+                        .buttonStyle(.plain)
                     } else {
-                        Button {
+                        TBPrimaryButton(title: "INICIAR MEDIÇÃO", systemImage: "play.fill") {
                             model.start()
-                        } label: {
-                            Label("Iniciar medição", systemImage: "play.fill")
                         }
                     }
-                } header: {
-                    Text("Alvo")
-                } footer: {
-                    Text("1.1.1.1 (Cloudflare) é um bom padrão para medir até a internet. Use o IP do seu roteador (ex.: 192.168.0.1) para medir até ele — se essa latência estiver alta, o problema é Wi-Fi, não a operadora.")
-                }
 
-                if let s = model.stats {
-                    Section("Estatísticas") {
-                        statRow("Mínimo", s.min)
-                        statRow("Média", s.avg)
-                        statRow("Máximo", s.max)
-                        statRow("Jitter", s.jitter)
-                        HStack {
-                            Text("Perda de pacotes")
-                            Spacer()
-                            Text(String(format: "%.1f%% (%d/%d)", model.lossPercent, model.lost, model.sent))
-                                .foregroundColor(model.lossPercent > 3 ? .red : .green)
-                                .monospacedDigit()
+                    Text("Dica: meça até 1.1.1.1 para testar a internet e até o IP do seu roteador para testar o Wi-Fi.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+
+            if let s = model.stats {
+                TBSectionHeader(title: "Estatísticas")
+
+                TBCard {
+                    VStack(spacing: 12) {
+                        HStack(spacing: 10) {
+                            netStat("Mínimo", s.min)
+                            netStat("Média", s.avg)
+                            netStat("Máximo", s.max)
+                        }
+                        HStack(spacing: 10) {
+                            netStat("Jitter", s.jitter)
+                            netStat("Perda", model.lossPercent, suffix: "%")
+                            netStat("Enviados", Double(model.sent), suffix: "", decimals: 0)
                         }
                     }
-                } else {
-                    Section("Estatísticas") {
-                        Text("\(model.sent) pacotes enviados, \(model.lost) perdidos")
-                            .foregroundColor(.secondary)
-                    }
                 }
+            }
 
-                if !model.pings.isEmpty {
-                    Section("Últimos pings") {
-                        ForEach(Array(model.pings.suffix(10).enumerated().reversed()), id: \.offset) { _, value in
+            if !model.pings.isEmpty {
+                TBSectionHeader(title: "Últimos Pings")
+
+                TBCard {
+                    VStack(spacing: 8) {
+                        sparkline(model.pings.suffix(60))
+                        ForEach(Array(model.pings.suffix(5).enumerated().reversed()), id: \.offset) { _, value in
                             HStack {
                                 Circle()
-                                    .fill(value < 30 ? Color.green : (value < 80 ? Color.yellow : Color.red))
-                                    .frame(width: 8, height: 8)
+                                    .fill(value < 30 ? TBTheme.accent : (value < 80 ? Color.yellow : Color.red))
+                                    .frame(width: 7, height: 7)
                                 Spacer()
                                 Text(String(format: "%.1f ms", value))
-                                    .monospacedDigit()
+                                    .font(.caption.monospacedDigit())
+                                    .foregroundColor(.primary)
                             }
                         }
                     }
                 }
-
-                Section {
-                    Text(model.statusText)
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
-                }
             }
-            .navigationTitle("Teste de Rede")
-            .navigationBarTitleDisplayMode(.inline)
+
+            Text(model.statusText)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
         }
-        .navigationViewStyle(.stack)
     }
 
-    private func statRow(_ label: String, _ value: Double) -> some View {
-        HStack {
+    private func netStat(_ label: String, _ value: Double, suffix: String = " ms", decimals: Int = 0) -> some View {
+        let fmt = "." + String(decimals) + "f"
+        return VStack(spacing: 3) {
+            Text(String(format: "%" + fmt, value) + suffix)
+                .font(.system(.headline, design: .rounded).bold())
+                .foregroundColor(value < 30 || label == "Enviados" ? TBTheme.accent : (value < 80 ? .yellow : .red))
             Text(label)
-            Spacer()
-            Text(String(format: "%.1f ms", value))
-                .monospacedDigit()
-                .foregroundColor(value < 30 ? .green : (value < 80 ? .yellow : .red))
+                .font(.system(size: 10, weight: .medium))
+                .foregroundColor(.secondary)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.05)))
+    }
+
+    private func sparkline(_ values: ArraySlice<Double>) -> some View {
+        let vals = Array(values)
+        let maxV = max(vals.max() ?? 1, 1)
+        return HStack(alignment: .bottom, spacing: 2) {
+            ForEach(Array(vals.enumerated()), id: \.offset) { _, v in
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(v < 30 ? TBTheme.accent : (v < 80 ? Color.yellow : Color.red))
+                    .frame(height: max(3, CGFloat(v / maxV) * 44))
+            }
+        }
+        .frame(height: 46, alignment: .bottom)
+        .frame(maxWidth: .infinity)
     }
 }
