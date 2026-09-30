@@ -97,9 +97,9 @@ struct TachometerView: View {
                 title: "TACONÔMETRO",
                 subtitle: model.isMeasuring ? "Medindo… toque na área abaixo" : "Latência real entre press e release",
                 systemImage: "speedometer",
-                stat1: model.stats.map { String(format: "%.0f", $0.min * 1000) } ?? "—",
-                stat2: model.stats.map { String(format: "%.0f", $0.avg * 1000) } ?? "—",
-                stat3: model.stats.map { String(format: "%.0f", $0.p95 * 1000) } ?? "—"
+                stat1: model.stats.map { s in (String(format: "%.0f", s.min * 1000), "Mín ms") } ?? ("—", "Mín ms"),
+                stat2: model.stats.map { s in (String(format: "%.0f", s.avg * 1000), "Médio ms") } ?? ("—", "Médio ms"),
+                stat3: model.stats.map { s in (String(format: "%.0f", s.p95 * 1000), "P95 ms") } ?? ("—", "P95 ms")
             )
 
             TBSectionHeader(title: "Área de Medição")

@@ -256,9 +256,9 @@ struct NetworkTestView: View {
                 title: "TESTE DE REDE",
                 subtitle: model.isRunning ? "Medindo \(model.host)…" : "Ping, jitter e perda de pacotes",
                 systemImage: "wifi",
-                stat1: model.stats.map { String(format: "%.0f", $0.avg) } ?? "—",
-                stat2: model.stats.map { String(format: "%.0f", $0.jitter) } ?? "—",
-                stat3: String(format: "%.0f", model.lossPercent)
+                stat1: model.stats.map { s in (String(format: "%.0f", s.avg), "Média ms") } ?? ("—", "Média ms"),
+                stat2: model.stats.map { s in (String(format: "%.0f", s.jitter), "Jitter ms") } ?? ("—", "Jitter ms"),
+                stat3: (String(format: "%.0f", model.lossPercent), "Perda %")
             )
 
             TBSectionHeader(title: "Alvo")

@@ -57,6 +57,13 @@ struct Tip {
     let detail: String
     let icon: String
     let color: Color
+
+    init(_ title: String, _ detail: String, _ icon: String, _ color: Color) {
+        self.title = title
+        self.detail = detail
+        self.icon = icon
+        self.color = color
+    }
 }
 
 struct TipCard: View {
